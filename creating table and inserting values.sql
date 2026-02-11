@@ -1,4 +1,4 @@
--- Customers table
+-- Customers table in sql
 CREATE TABLE Customer (
     cid INT PRIMARY KEY,
     name VARCHAR(100),
