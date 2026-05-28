@@ -1,4 +1,4 @@
--- Customers table in sql
+-- Customers table
 CREATE TABLE Customer (
     cid INT PRIMARY KEY,
     name VARCHAR(100),
@@ -19,20 +19,19 @@ CREATE TABLE Orders (
     oid INT PRIMARY KEY,
     cid INT,
     orderdate DATE,
-    FOREIGN KEY (cid) REFERENCES Customers(cid)
+    FOREIGN KEY (cid) REFERENCES Customer(cid)
 );
 
 -- Payments table
 CREATE TABLE Payment (
-    pid INT PRIMARY KEY,
+    paymentid INT PRIMARY KEY,
     oid INT,
     amount DECIMAL(10,2),
     paymentdate DATE,
     FOREIGN KEY (oid) REFERENCES Orders(oid)
 );
 
-
-#inserting values
+-- Insert Customers
 INSERT INTO Customer (cid, name, email, joindate) VALUES
 (1, 'Ashim Paudel', 'ashim@example.com', '2023-01-10'),
 (2, 'Sita Sharma', 'sita@example.com', '2023-02-15'),
@@ -40,7 +39,7 @@ INSERT INTO Customer (cid, name, email, joindate) VALUES
 (4, 'Maya Gurung', 'maya@example.com', '2023-05-01');
 
 -- Insert Products
-INSERT INTO Product (pid, Productname, category, price) VALUES
+INSERT INTO Product (pid, productname, category, price) VALUES
 (1, 'Laptop', 'Electronics', 750.00),
 (2, 'Smartphone', 'Electronics', 500.00),
 (3, 'Headphones', 'Accessories', 50.00),
@@ -56,15 +55,9 @@ INSERT INTO Orders (oid, cid, orderdate) VALUES
 (105, 4, '2023-08-01');
 
 -- Insert Payments
-INSERT INTO Payment (pid, oid, amount,paymentdate ) VALUES
+INSERT INTO Payment (paymentid, oid, amount, paymentdate) VALUES
 (1001, 101, 750.00, '2023-06-12'),
 (1002, 102, 500.00, '2023-06-15'),
 (1003, 103, 80.00, '2023-07-05'),
 (1004, 104, 200.00, '2023-07-20'),
 (1005, 105, 30.00, '2023-08-01');
-
-
-
-
-
-
