@@ -76,7 +76,17 @@ join orders on customer.cid= orders.cid
 join  payment on orders.oid= payment.oid
 ORDER BY payment.amount DESC
 LIMIT 1;
-
+-- Customer Order Sequence
+WITH OrderedHistory AS (
+    SELECT 
+        c.name,
+        o.orderdate,
+        ROW_NUMBER() OVER (PARTITION BY o.cid ORDER BY o.orderdate ASC) as order_sequence
+    FROM Orders o
+    JOIN Customer c ON o.cid = c.cid
+)
+SELECT name, orderdate, order_sequence
+FROM OrderedHistory;
 
 
 
