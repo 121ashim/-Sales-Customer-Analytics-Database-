@@ -1,95 +1,119 @@
-use sales;
+-- 02_SQL_Analytics.sql
+USE ecommerce_sales;
 
-#1. find the most expensive product  from products list
-select productname,price from product
-where price=(select max(price) from product);
+-- 1 Total Revenue
+SELECT SUM(amount) AS total_revenue FROM Payment;
 
-#2. find all the product expensice than 100
- select productname,price from product 
- where price > 100;
+-- 2 Total Customers
+SELECT COUNT(*) AS total_customers FROM Customer;
 
-#3. Get all order  place by ashime paudel 
- select * from orders 
- INNER JOIN customer
- ON orders.cid=customer.cid
- WHERE customer.name='Ashim Paudel';
- 
- #4. toal revenue earned
-  select sum(amount) AS totalrevenue
-  from payment;
-  
-  #5.REVENUE BY customer
- SELECT c.name, SUM(p.amount) AS TotalSpent
+-- 3 Total Orders
+SELECT COUNT(*) total_orders FROM Orders;
+
+-- 4 Average Order Value
+SELECT ROUND(AVG(amount),2) avg_order_value FROM Payment;
+
+-- 5 Monthly Revenue
+SELECT DATE_FORMAT(payment_date,'%Y-%m') month,SUM(amount) revenue
+FROM Payment GROUP BY month ORDER BY month;
+
+-- 6 Yearly Revenue
+SELECT YEAR(payment_date) year,SUM(amount) revenue
+FROM Payment GROUP BY year;
+
+-- 7 Revenue by Customer
+SELECT c.full_name,SUM(p.amount) total_spent
 FROM Customer c
-JOIN Orders o ON c.cid = o.cid
-JOIN Payment p ON o.oid = p.oid
-GROUP BY c.name
-ORDER BY TotalSpent DESC;
+JOIN Orders o ON c.customer_id=o.customer_id
+JOIN Payment p ON o.order_id=p.order_id
+GROUP BY c.customer_id,c.full_name
+ORDER BY total_spent DESC;
 
-#6. monthly revenue
-SELECT DATE_FORMAT(paymentdate, '%Y-%m') AS Month,
-       SUM(amount) AS MonthlyRevenue
-FROM Payment
-GROUP BY Month
-ORDER BY Month;
+-- 8 Top 5 Customers
+SELECT c.full_name,SUM(p.amount) total_spent
+FROM Customer c
+JOIN Orders o ON c.customer_id=o.customer_id
+JOIN Payment p ON o.order_id=p.order_id
+GROUP BY c.customer_id,c.full_name
+ORDER BY total_spent DESC
+LIMIT 5;
 
-#7.YEARLY REVENUE
-select DATE(paymentdate) AS year,
-max(amount) AS REVENUE
-from payment
-GROUP BY DATE(paymentdate)
-ORDER BY year;
+-- 9 Customers Without Orders
+SELECT c.full_name
+FROM Customer c
+LEFT JOIN Orders o ON c.customer_id=o.customer_id
+WHERE o.order_id IS NULL;
 
-#8. customer who havent place any order
-select customer.name from customer
-left join orders 
-ON orders.cid = customer.cid
-where orders.oid is NULL;
+--10 Best Selling Products
+SELECT pr.product_name,SUM(oi.quantity) qty_sold
+FROM OrderItems oi
+JOIN Product pr ON oi.product_id=pr.product_id
+GROUP BY pr.product_id,pr.product_name
+ORDER BY qty_sold DESC;
 
-#9. top 2 customer by spendings
+--11 Revenue by Product
+SELECT pr.product_name,
+SUM((oi.unit_price-oi.discount)*oi.quantity) revenue
+FROM OrderItems oi
+JOIN Product pr ON oi.product_id=pr.product_id
+GROUP BY pr.product_id;
 
-select customer.name as names,
-sum(payment.amount) as totalspend 
-from customer
-join orders ON customer.cid= orders.cid
-join payment ON orders.oid=payment.oid
-GROUP BY customer.name
-ORDER BY totalspend DESC
-LIMIT 2;
+--12 Revenue by Category
+SELECT ca.category_name,
+SUM((oi.unit_price-oi.discount)*oi.quantity) revenue
+FROM Category ca
+JOIN Product pr ON ca.category_id=pr.category_id
+JOIN OrderItems oi ON pr.product_id=oi.product_id
+GROUP BY ca.category_id;
 
-#10. order and payment in july 2023
+--13 Most Expensive Product
+SELECT product_name,unit_price
+FROM Product
+WHERE unit_price=(SELECT MAX(unit_price) FROM Product);
 
-SELECT 
-    orders.oid,
-    payment.amount,
-    payment.paymentdate
-FROM payment
-JOIN orders ON orders.oid = payment.oid
-WHERE YEAR(payment.paymentdate) = 2023
-  AND MONTH(payment.paymentdate) = 7
-ORDER BY payment.paymentdate;
+--14 Cheapest Product
+SELECT product_name,unit_price
+FROM Product
+WHERE unit_price=(SELECT MIN(unit_price) FROM Product);
 
-#11. customer with highest single payment
+--15 Repeat Customers
+SELECT c.full_name,COUNT(*) orders_count
+FROM Customer c JOIN Orders o USING(customer_id)
+GROUP BY c.customer_id
+HAVING COUNT(*)>1;
 
-select customer.name,payment.amount from customer
-join orders on customer.cid= orders.cid
-join  payment on orders.oid= payment.oid
-ORDER BY payment.amount DESC
-LIMIT 1;
--- Customer Order Sequence
-WITH OrderedHistory AS (
-    SELECT 
-        c.name,
-        o.orderdate,
-        ROW_NUMBER() OVER (PARTITION BY o.cid ORDER BY o.orderdate ASC) as order_sequence
-    FROM Orders o
-    JOIN Customer c ON o.cid = c.cid
-)
-SELECT name, orderdate, order_sequence
-FROM OrderedHistory;
+--16 Running Revenue
+SELECT payment_date,amount,
+SUM(amount) OVER(ORDER BY payment_date) running_revenue
+FROM Payment;
 
+--17 Customer Order Sequence
+SELECT c.full_name,o.order_date,
+ROW_NUMBER() OVER(PARTITION BY c.customer_id ORDER BY o.order_date) order_sequence
+FROM Orders o JOIN Customer c USING(customer_id);
 
+--18 Rank Customers
+SELECT full_name,total_spent,
+RANK() OVER(ORDER BY total_spent DESC) spending_rank
+FROM(
+SELECT c.full_name,SUM(p.amount) total_spent
+FROM Customer c
+JOIN Orders o USING(customer_id)
+JOIN Payment p USING(order_id)
+GROUP BY c.customer_id,c.full_name
+)x;
 
+--19 Monthly Growth
+WITH m AS(
+SELECT DATE_FORMAT(payment_date,'%Y-%m') mth,SUM(amount) rev
+FROM Payment GROUP BY mth)
+SELECT mth,rev,
+LAG(rev) OVER(ORDER BY mth) previous_month,
+rev-LAG(rev) OVER(ORDER BY mth) growth
+FROM m;
 
-  
-  
+--20 Average Items Per Order
+SELECT AVG(item_count) avg_items
+FROM(
+SELECT order_id,SUM(quantity) item_count
+FROM OrderItems GROUP BY order_id)t;
