@@ -1,6 +1,5 @@
 
--- Ecommerce Sales Analytics Database on MySQL 8.0
--- Professional 3NF Schema
+
 
 
 DROP DATABASE IF EXISTS ecommerce_sales;
